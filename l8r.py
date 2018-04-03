@@ -6,10 +6,16 @@ from dateutil.relativedelta import *
 from datetime import timezone
 
 
-def processMailbox(obj, box):
-	typ, count = obj.select(box)
+boxes = {
+	'l8r/tomorrow' : relativedelta(days=1),
+	'l8r/next week' : relativedelta(weeks=1, weekday=MO),
+}
+
+
+def processMailbox(obj, boxname):
+	typ, count = obj.select('"{0}"'.format(boxname))
 	count = int(count[0])
-	print('l8r has {0} messages'.format(count))
+	print('{0} has {1} messages'.format(boxname, count))
 
 	to_copy = []
 	for i in range(count):
@@ -21,20 +27,18 @@ def processMailbox(obj, box):
 
 		# print(data[0][1].decode('UTF-8'))
 		msg = email.message_from_string(data[0][1].decode('UTF-8'))
-		print(msg['Date'])
 		date = parser.parse(msg['Date'])
 
 		now = datetime.datetime.now()
 		now = now.replace(tzinfo = date.tzinfo)
 
-		tomorrow = (date + relativedelta(days=1)).replace(hour=7,minute=0,second=0)
+		tomorrow = (date + boxes[boxname]).replace(hour=7,minute=0,second=0)
 
 		print('date', date)
 		print('now',now)
 		print('tomorrow',tomorrow)
 
 		subject = msg['Subject']
-		print(i, date, subject)
 
 		if now > tomorrow:
 			print('do it!')
@@ -85,6 +89,8 @@ def main():
 		print("could not log in to server")
 		exit(-1)
 
+	# typ, data = obj.list()
+	# print(data)
 
 	# typ, count = obj.select('INBOX',True)
 	# count = int(count[0])
@@ -93,7 +99,9 @@ def main():
 	# 	print('flags:',data)
 	# return		
 
-	processMailbox(obj,'l8r')
+	for mb in boxes.keys():
+		print('processing',mb)
+		processMailbox(obj,mb)
 
 
 
