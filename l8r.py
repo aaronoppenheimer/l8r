@@ -4,11 +4,11 @@ import datetime
 from dateutil import parser
 from dateutil.relativedelta import *
 from datetime import timezone
-
+import os
 
 boxes = {
 	'l8r/tomorrow' : relativedelta(days=1),
-	'l8r/next week' : relativedelta(weeks=1, weekday=MO),
+	'l8r/next week' : relativedelta(days=1, weekday=MO),
 }
 
 
@@ -32,10 +32,10 @@ def processMailbox(obj, boxname):
 		now = datetime.datetime.now()
 		now = now.replace(tzinfo = date.tzinfo)
 
-		tomorrow = (date + boxes[boxname]).replace(hour=7,minute=0,second=0)
+		tomorrow = (date + boxes[boxname]).replace(hour=5,minute=0,second=0)
 
-		print('date', date)
 		print('now',now)
+		print('date', date)
 		print('tomorrow',tomorrow)
 
 		subject = msg['Subject']
@@ -71,16 +71,21 @@ def doCopy(obj, to_copy):
 		# print(typ,data)
 
 
-def main():
+def main(usefile=False):
 
-	try:
-		with open("pwd.txt") as f:
-			s = f.readline().strip()
-			u = f.readline().strip()
-			p = f.readline().strip()
-	except:
-		print("could not open password file")
-		exit(-1)
+	if usefile:
+		try:
+			with open("pwd.txt") as f:
+				s = f.readline().strip()
+				u = f.readline().strip()
+				p = f.readline().strip()
+		except:
+			print("could not open password file")
+			exit(-1)
+	else:
+		s = os.environ["l8rServer"]
+		u = os.environ["l8rUser"]
+		p = os.environ["l8rPassword"]
 
 	try:
 		obj = imaplib.IMAP4_SSL(s, 993)
@@ -104,6 +109,10 @@ def main():
 		processMailbox(obj,mb)
 
 
+def lambda_handler(event, context):
+    main()
+    return 'Hello from Lambda'
+
 
 if __name__ == "__main__":
-	main()
+	main(usefile=True)
