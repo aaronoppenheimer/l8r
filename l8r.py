@@ -7,8 +7,8 @@ import os
 
 boxes = {
 	'l8r/tomorrow' : datetime.now(timezone.utc).hour < 12,
-	'l8r/next week' : datetime.today().weekday() == 0,
-	'l8r/weekend' : datetime.today().weekday() == 5,
+	'l8r/next week' : (datetime.today().weekday() == 0) and (datetime.now(timezone.utc).hour < 12),
+	'l8r/weekend' : (datetime.today().weekday() == 5) and (datetime.now(timezone.utc).hour < 12),
 	'l8r/tonight' : datetime.now(timezone.utc).hour >= 12,
 }
 
