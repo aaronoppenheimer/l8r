@@ -1,52 +1,28 @@
 import imaplib
 import email
-import datetime
+from datetime import datetime, timezone
 from dateutil import parser
 from dateutil.relativedelta import *
-from datetime import timezone
 import os
 
 boxes = {
-	'l8r/tomorrow' : relativedelta(days=1),
-	'l8r/next week' : relativedelta(days=1, weekday=MO),
+	'l8r/tomorrow' : datetime.now(timezone.utc).hour < 12,
+	'l8r/next week' : datetime.today().weekday() == 0,
+	'l8r/weekend' : datetime.today().weekday() == 5,
+	'l8r/tonight' : datetime.now(timezone.utc).hour >= 12,
 }
 
 
 def processMailbox(obj, boxname):
-	typ, count = obj.select('"{0}"'.format(boxname))
-	count = int(count[0])
-	print('{0} has {1} messages'.format(boxname, count))
 
-	to_copy = []
-	for i in range(count):
+	if boxes[boxname]:
+		# process everything in this mailbox
+		typ, count = obj.select('"{0}"'.format(boxname))
+		count = int(count[0])
+		print('{0} has {1} messages'.format(boxname, count))
 
-		typ, data = obj.fetch(str(i+1),"(UID RFC822)")
-		if typ != 'OK':
-			print("ERROR getting message", i)
-			return
-
-		# print(data[0][1].decode('UTF-8'))
-		msg = email.message_from_string(data[0][1].decode('UTF-8'))
-		date = parser.parse(msg['Date'])
-
-		now = datetime.datetime.now()
-		now = now.replace(tzinfo = date.tzinfo)
-
-		tomorrow = (date + boxes[boxname]).replace(hour=5,minute=0,second=0)
-
-		print('now',now)
-		print('date', date)
-		print('tomorrow',tomorrow)
-
-		subject = msg['Subject']
-
-		if now > tomorrow:
-			print('do it!')
-			to_copy.append(i+1)
-		else:
-			print('not yet')
-
-	doCopy(obj, to_copy)
+		to_copy = range(1, count+1)
+		doCopy(obj, to_copy)
 
 
 def doCopy(obj, to_copy):
