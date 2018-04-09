@@ -5,13 +5,24 @@ from dateutil import parser
 from dateutil.relativedelta import *
 import os
 
+import boto3
+from base64 import b64decode
+
+ENCRYPTED_p = os.environ['l8rPassword']
+DECRYPTED_p = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_p))['Plaintext']
+
+ENCRYPTED_s = os.environ['l8rServer']
+DECRYPTED_s = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_s))['Plaintext']
+
+ENCRYPTED_u = os.environ['l8rUser']
+DECRYPTED_u = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_u))['Plaintext']
+
 boxes = {
 	'l8r/tomorrow' : datetime.now(timezone.utc).hour < 12,
-	'l8r/next week' : datetime.today().weekday() == 0,
-	'l8r/weekend' : datetime.today().weekday() == 5,
+	'l8r/next week' : (datetime.today().weekday() == 0) and (datetime.now(timezone.utc).hour < 12),
+	'l8r/weekend' : (datetime.today().weekday() == 5) and (datetime.now(timezone.utc).hour < 12),
 	'l8r/tonight' : datetime.now(timezone.utc).hour >= 12,
 }
-
 
 def processMailbox(obj, boxname):
 
@@ -59,9 +70,12 @@ def main(usefile=False):
 			print("could not open password file")
 			exit(-1)
 	else:
-		s = os.environ["l8rServer"]
-		u = os.environ["l8rUser"]
-		p = os.environ["l8rPassword"]
+		# s = os.environ["l8rServer"]
+		# u = os.environ["l8rUser"]
+		# p = os.environ["l8rPassword"]
+		s = DECRYPTED_s.decode('UTF-8')
+		u = DECRYPTED_u.decode('UTF-8')
+		p = DECRYPTED_p.decode('UTF-8')
 
 	try:
 		obj = imaplib.IMAP4_SSL(s, 993)
