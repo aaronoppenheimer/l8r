@@ -1,3 +1,20 @@
+# l8r - snooze email via IMAP
+#
+# Copyright 2018 Aaron Oppenheimer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import imaplib
 import email
 from datetime import datetime, timezone
@@ -5,59 +22,68 @@ from dateutil import parser
 from dateutil.relativedelta import *
 import os
 
-import boto3
-from base64 import b64decode
+plaintext=False # set true if you're not using encryption
+if plaintext:
+	# if you are using encrypted environment variables in Lambda, here's where they get decrypted:
+	import boto3
+	from base64 import b64decode
+	ENCRYPTED_p = os.environ['l8rPassword']
+	DECRYPTED_p = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_p))['Plaintext']
 
-ENCRYPTED_p = os.environ['l8rPassword']
-DECRYPTED_p = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_p))['Plaintext']
+	ENCRYPTED_s = os.environ['l8rServer']
+	DECRYPTED_s = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_s))['Plaintext']
 
-ENCRYPTED_s = os.environ['l8rServer']
-DECRYPTED_s = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_s))['Plaintext']
+	ENCRYPTED_u = os.environ['l8rUser']
+	DECRYPTED_u = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_u))['Plaintext']
 
-ENCRYPTED_u = os.environ['l8rUser']
-DECRYPTED_u = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_u))['Plaintext']
 
+# These are the definitions of the mailboxes and the criteria for whether to move their contents
+# back to the inbox. In the original, the script should run twice/day, so the "tomorrow" box
+# passes every morning, and the "tonight" box passes every night.
 boxes = {
+	'l8r/tonight' : datetime.now(timezone.utc).hour >= 12,
 	'l8r/tomorrow' : datetime.now(timezone.utc).hour < 12,
 	'l8r/next week' : (datetime.today().weekday() == 0) and (datetime.now(timezone.utc).hour < 12),
 	'l8r/weekend' : (datetime.today().weekday() == 5) and (datetime.now(timezone.utc).hour < 12),
-	'l8r/tonight' : datetime.now(timezone.utc).hour >= 12,
 }
 
+# If there's a mailbox in the "boxes" dictionary with the correct name, process it
 def processMailbox(obj, boxname):
-
-	if boxes[boxname]:
+	if boxname in boxes.keys():
 		# process everything in this mailbox
 		typ, count = obj.select('"{0}"'.format(boxname))
 		count = int(count[0])
 		print('{0} has {1} messages'.format(boxname, count))
-
 		to_copy = range(1, count+1)
 		doCopy(obj, to_copy)
 
-
+# copy everything in "to_copy" back to the inbox. "to_copy" is just a list of message indices.
 def doCopy(obj, to_copy):
-
 	if to_copy:
 		copyset = ','.join([str(x) for x in to_copy])
 
 		# set unread
 		typ,data = obj.store(copyset, '-FLAGS', '\\Seen')
-		# print(typ,data)
 
 		# copy to inbox
 		typ,data = obj.copy(copyset,"INBOX")
-		# print(typ,data)
 
-		# delete from here
+		# delete from this mailbox
 		typ,data = obj.store(copyset, '+FLAGS', '\\Deleted')
-		# print(typ,data)
 
 		# make it go away
 		typ,data = obj.expunge()
-		# print(typ,data)
 
 
+# log into the mail account and process everything in the "boxes" dict.
+# Pass in "usefule" if running from a shell and there's a password file. Otherwise
+# assumes environment variables for use in AWS Lambda.
+#
+# Password file has three lines:
+#   <server> (e.g. imap.foo.bar)
+#   <mailbox name>
+#   <mailbox password>
+#
 def main(usefile=False):
 
 	if usefile:
@@ -70,12 +96,14 @@ def main(usefile=False):
 			print("could not open password file")
 			exit(-1)
 	else:
-		# s = os.environ["l8rServer"]
-		# u = os.environ["l8rUser"]
-		# p = os.environ["l8rPassword"]
-		s = DECRYPTED_s.decode('UTF-8')
-		u = DECRYPTED_u.decode('UTF-8')
-		p = DECRYPTED_p.decode('UTF-8')
+		if plaintext:
+			s = os.environ["l8rServer"]
+			u = os.environ["l8rUser"]
+			p = os.environ["l8rPassword"]
+		else:
+			s = DECRYPTED_s.decode('UTF-8')
+			u = DECRYPTED_u.decode('UTF-8')
+			p = DECRYPTED_p.decode('UTF-8')
 
 	try:
 		obj = imaplib.IMAP4_SSL(s, 993)
@@ -84,25 +112,14 @@ def main(usefile=False):
 		print("could not log in to server")
 		exit(-1)
 
-	# typ, data = obj.list()
-	# print(data)
-
-	# typ, count = obj.select('INBOX',True)
-	# count = int(count[0])
-	# for i in range(count):
-	# 	typ, data = obj.fetch(str(i+1),"(FLAGS)")
-	# 	print('flags:',data)
-	# return		
-
 	for mb in boxes.keys():
-		print('processing',mb)
+		print('processing mailbox',mb)
 		processMailbox(obj,mb)
 
 
 def lambda_handler(event, context):
-    main()
-    return 'Hello from Lambda'
-
+    main(useful=False)
+    return 'done!'
 
 if __name__ == "__main__":
 	main(usefile=True)
