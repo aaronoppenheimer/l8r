@@ -1,5 +1,5 @@
 # l8r
-Tools for snoozing email.
+A tool for snoozing email.
 
 Ever wish you could make an email disappear from your inbox, and have it return later? Some email systems give you that feature,
 but most don't. l8r works with any imap email system to give basic snoozin'.
