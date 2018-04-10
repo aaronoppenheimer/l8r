@@ -19,10 +19,10 @@ The l8r script should be run twice per day. For example, 6am and 6pm, to process
 If run inside Lambda, use CloudWatch events to schedule the runs.
 
 The morning run cron statement:
-  cron(0 11 * * ? *)
+```cron(0 11 * * ? *)```
 
 The afternoon run cron statement:
-  cron(0 22 * * ? *)
+```cron(0 22 * * ? *)```
 
 Note that Lambda assumes GMT so both the script and cron should take that into account.
 
@@ -32,15 +32,19 @@ l8r needs a server, email account, and password. This can be managed using a con
 
 If running the script from a shell, create a file called 'pwd.txt' in the same directory with three lines:
 
+~~~~
   <server address e.g. imap.foo.com>
   <email address e.g. aaron@aoppenheimer.com>
-  <email passeord e.g. thisismypassword>
+  <email password e.g. thisismypassword>
+~~~~
 
 If running the script in Lambda, create three environment variables to hold the information:
 
+~~~~
   l8rServer
   l8rUser
   l8rPassword
+~~~~
 
 If you like, you can use the key manager to encrypt the environment variables and decrypt them in the script; if you choose not to do this, change the script to make plaintext=True.
 
