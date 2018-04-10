@@ -46,7 +46,7 @@ If running the script in Lambda, create three environment variables to hold the 
   l8rPassword
 ~~~~
 
-If you like, you can use the key manager to encrypt the environment variables and decrypt them in the script; if you choose not to do this, change the script to make plaintext=True.
+If you like, you can use the key manager to encrypt the environment variables and decrypt them in the script; if you choose not to do this, change the script to make encrypted_credentials=False.
 
 ### Enjoy
 

@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Assumes Python 3 environment
+
 import imaplib
 import email
 from datetime import datetime, timezone
@@ -22,8 +24,8 @@ from dateutil import parser
 from dateutil.relativedelta import *
 import os
 
-plaintext=False # set true if you're not using encryption
-if plaintext:
+encrypted_credentials=True # set true if you're not using encryption
+if encrypted_credentials:
 	# if you are using encrypted environment variables in Lambda, here's where they get decrypted:
 	import boto3
 	from base64 import b64decode
@@ -96,14 +98,14 @@ def main(usefile=False):
 			print("could not open password file")
 			exit(-1)
 	else:
-		if plaintext:
-			s = os.environ["l8rServer"]
-			u = os.environ["l8rUser"]
-			p = os.environ["l8rPassword"]
-		else:
+		if encrypted_credentials:
 			s = DECRYPTED_s.decode('UTF-8')
 			u = DECRYPTED_u.decode('UTF-8')
 			p = DECRYPTED_p.decode('UTF-8')
+		else:
+			s = os.environ["l8rServer"]
+			u = os.environ["l8rUser"]
+			p = os.environ["l8rPassword"]
 
 	try:
 		obj = imaplib.IMAP4_SSL(s, 993)
@@ -118,7 +120,7 @@ def main(usefile=False):
 
 
 def lambda_handler(event, context):
-    main(useful=False)
+    main(usefile=False)
     return 'done!'
 
 if __name__ == "__main__":
