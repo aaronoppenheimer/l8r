@@ -55,10 +55,13 @@ def processMailbox(obj, boxname):
 	if boxname in boxes.keys():
 		# process everything in this mailbox
 		typ, count = obj.select('"{0}"'.format(boxname))
-		count = int(count[0])
-		print('{0} has {1} messages'.format(boxname, count))
-		to_copy = range(1, count+1)
-		doCopy(obj, to_copy)
+		if (boxes[boxname]):
+			count = int(count[0])
+			print('{0} has {1} messages'.format(boxname, count))
+			to_copy = range(1, count+1)
+			doCopy(obj, to_copy)
+		else:
+			print('not yet!')
 
 # copy everything in "to_copy" back to the inbox. "to_copy" is just a list of message indices.
 def doCopy(obj, to_copy):
