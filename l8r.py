@@ -47,6 +47,7 @@ boxes = {
 	'l8r/tomorrow' : datetime.now(timezone.utc).hour < 12,
 	'l8r/next week' : (datetime.today().weekday() == 0) and (datetime.now(timezone.utc).hour < 12),
 	'l8r/weekend' : (datetime.today().weekday() == 5) and (datetime.now(timezone.utc).hour < 12),
+	'l8r/next month' : (datetime.today().day == 1) and (datetime.now(timezone.utc).hour < 12),
 }
 
 # If there's a mailbox in the "boxes" dictionary with the correct name, process it
